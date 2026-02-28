@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイムトラベル・ジュークボックス</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            color: #ffffff;
+            padding-top: 50px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        input {
+            font-size: 1.2em;
+            padding: 10px;
+            width: 120px;
+            text-align: center;
+            border: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        button {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            background-color: #1DB954; /* Spotify Green */
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #1ed760;
+        }
+        #message {
+            margin: 20px 0;
+            min-height: 1.5em;
+        }
+        #player-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>年代ヒットソング再生</h1>
+        <div>
+            <input type="number" id="yearInput" placeholder="例: 1995" min="1950" max="2026">
+            <button id="playButton">再生</button>
+        </div>
+        
+        <div id="message"></div>
+        <div id="player-container">
+            </div>
+    </div>
+
+    <script>
+        document.getElementById('playButton').addEventListener('click', async () => {
+            const year = document.getElementById('yearInput').value;
+            const messageDiv = document.getElementById('message');
+            const playerContainer = document.getElementById('player-container');
+
+            if (!year) {
+                messageDiv.textContent = '西暦を入力してください。';
+                return;
+            }
+
+            // UIをリセットしてローディング表示
+            messageDiv.textContent = '曲を検索中...';
+            playerContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/get_track', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ year: year })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    messageDiv.textContent = data.error || 'エラーが発生しました。';
+                    return;
+                }
+
+                messageDiv.textContent = `${year}年のヒット曲: ${data.name} / ${data.artist}`;
+
+                // iframeを生成してSpotifyプレイヤーを埋め込む
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://open.spotify.com/embed/track/${data.track_id}?utm_source=generator&theme=0`;
+                iframe.width = '100%';
+                iframe.height = '352';
+                iframe.frameBorder = '0';
+                iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+                iframe.loading = 'lazy';
+                
+                playerContainer.appendChild(iframe);
+
+            } catch (error) {
+                messageDiv.textContent = 'サーバーとの通信エラーが発生しました。';
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
